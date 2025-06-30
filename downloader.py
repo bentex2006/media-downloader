@@ -49,14 +49,20 @@ class MediaDownloader:
         Returns:
             Sanitized filename safe for filesystem
         """
-        # Remove or replace problematic characters
-        filename = re.sub(r'[<>:"/\\|?*]', '_', filename)
+        # Remove or replace problematic characters that cause URL encoding issues
+        # This includes: <>:"/\|?*()[]{}#%&=+@!$,;'`~
+        filename = re.sub(r'[<>:"/\\|?*()[\]{}#%&=+@!$,;\'`~]', '_', filename)
         filename = re.sub(r'\s+', '_', filename)  # Replace spaces with underscores
-        filename = filename.strip('.')  # Remove leading/trailing dots
+        filename = re.sub(r'_+', '_', filename)  # Replace multiple underscores with single
+        filename = filename.strip('._')  # Remove leading/trailing dots and underscores
         
         # Ensure filename isn't too long
-        if len(filename) > 200:
-            filename = filename[:200]
+        if len(filename) > 150:
+            filename = filename[:150]
+        
+        # Ensure filename is not empty
+        if not filename:
+            filename = "downloaded_media"
         
         return filename
     
