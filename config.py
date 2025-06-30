@@ -13,26 +13,26 @@ class AppConfig:
     This makes it easy to manage all settings in one place
     """
     
-    # Basic app information
+    
     APP_NAME = "Multi-Platform Media Downloader"
     VERSION = "1.0.0"
     CREATOR = "Ritu Raj Singh"
     
-    # Creator links and information
-    GITHUB_URL = "https://github.com/riturajsingh"
-    LINKTREE_URL = "https://linktr.ee/riturajsingh"
-    SOURCE_REPO = "https://github.com/riturajsingh/media-downloader"
     
-    # Server configuration
-    HOST = "0.0.0.0"  # Bind to all interfaces for container compatibility
-    PORT = 5000       # Frontend port (automatically forwarded)
+    GITHUB_URL = "https://github.com/bentex2006"
+    LINKTREE_URL = "https://linktr.ee/mrbentex"
+    SOURCE_REPO = "https://github.com/bentex2006/media-downloader"
+    
+    
+    HOST = "0.0.0.0" 
+    PORT = 5000       
     DEBUG = os.getenv("DEBUG", "false").lower() == "true"
     
-    # File handling settings
+    
     DOWNLOADS_DIR = "downloads"
     MAX_FILE_SIZE = 500 * 1024 * 1024  # 500MB limit
     
-    # Supported formats and their configurations
+    
     SUPPORTED_FORMATS = {
         "MP4": {
             "description": "Video file",
@@ -51,8 +51,7 @@ class AppConfig:
         }
     }
     
-    # yt-dlp configuration options
-    # These are the settings we'll pass to yt-dlp for downloading
+    
     YT_DLP_OPTIONS = {
         "outtmpl": f"{DOWNLOADS_DIR}/%(title)s.%(ext)s",  # Where to save files
         "format": "best",  # Default quality
@@ -63,8 +62,7 @@ class AppConfig:
         "ignoreerrors": True,  # Continue on errors when possible
     }
     
-    # Platform-specific settings
-    # Different platforms might need different handling
+    
     PLATFORM_CONFIGS = {
         "youtube": {
             "name": "YouTube",
@@ -98,8 +96,7 @@ class AppConfig:
         "format_not_available": "The requested format is not available for this media"
     }
     
-    # Frontend configuration
-    # These settings affect the user interface
+    
     UI_CONFIG = {
         "theme": "dark",
         "primary_color": "#3b82f6",  # Blue

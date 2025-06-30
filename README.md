@@ -67,7 +67,7 @@ This project was created as a personal learning exercise to:
 
 1. **Clone the repository**
 ```bash
-git clone https://github.com/riturajsingh/media-downloader.git
+git clone https://github.com/bentex2006/media-downloader.git
 cd media-downloader
 ```
 
@@ -93,7 +93,7 @@ That's it! The application will be running with live reload enabled for developm
 ### Local Development
 ```bash
 # Clone and install
-git clone https://github.com/riturajsingh/media-downloader.git
+git clone https://github.com/bentex2006/media-downloader.git
 cd media-downloader
 pip install -r requirements.txt
 
@@ -184,10 +184,10 @@ The core logic, architecture decisions, and implementation approach are original
 
 ## 👨‍💻 Author & Credits
 
-**Created by:** [Ritu Raj Singh](https://linktr.ee/riturajsingh)
+**Created by:** [b3nt3x](https://linktr.ee/mrbentex)
 
-- **GitHub**: [@riturajsingh](https://github.com/riturajsingh)
-- **Links**: [linktr.ee/riturajsingh](https://linktr.ee/riturajsingh)
+- **GitHub**: [@bentex2006](https://github.com/bentex2006)
+- **Links**: [linktr.ee/mrbentex](https://linktr.ee/mrbentex)
 
 ### Acknowledgments
 - **yt-dlp** team for the incredible media extraction library
@@ -220,7 +220,7 @@ While this is primarily a personal learning project, contributions are welcome:
 ## 🐛 Issues & Support
 
 If you encounter any issues:
-1. Check the [Issues](https://github.com/riturajsingh/media-downloader/issues) page
+1. Check the [Issues](https://github.com/bentex2006/media-downloader/issues) page
 2. Create a new issue with detailed description
 3. Include error logs and steps to reproduce
 

@@ -216,8 +216,7 @@ class MediaDownloader:
                         "error": f"Failed to extract info: {str(e)}"
                     }
             
-            # Now perform the actual download with proper options
-            # Update output template for this specific download
+            
             options['outtmpl'] = filepath
             
             with yt_dlp.YoutubeDL(options) as ydl:
