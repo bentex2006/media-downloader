@@ -102,9 +102,25 @@ The application is designed for simple deployment with minimal configuration:
 - File size limits configurable (default 500MB)
 - Download directory customizable
 
-## Changelog
-- June 30, 2025. Initial setup
+## Recent Changes
+
+### June 30, 2025 - Documentation & Branding Update
+- **README.md Enhancement**: Created comprehensive educational README with GIF demo, legal disclaimers, deployment guides, and clear AI assistance disclosure
+- **LICENSE Update**: Added educational-focused MIT license with specific terms for learning use and AI assistance disclosure  
+- **Footer Enhancement**: Redesigned footer with better visual design, tech stack badges, and proper creator attribution
+- **Educational Focus**: Emphasized human-written code with AI assistance for learning purposes
+- **Deployment Instructions**: Added multiple deployment options (Docker, Replit, Railway, manual)
+- **Legal Compliance**: Added proper disclaimers for copyright respect and platform terms compliance
+
+### June 30, 2025 - Initial Setup
+- FastAPI backend with yt-dlp integration
+- Vanilla JavaScript frontend with TailwindCSS
+- Multi-platform media downloading support
+- Progress tracking and error handling
+- Educational code structure with extensive comments
 
 ## User Preferences
 
 Preferred communication style: Simple, everyday language.
+Project Attribution: Human-written educational code with AI assistance for optimization and documentation.
+Focus: Learning-oriented development with extensive commenting and clean architecture.

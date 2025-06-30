@@ -19,3 +19,36 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+
+## Educational License Terms
+
+This project is specifically designed as an educational resource with the following additional terms:
+
+### Learning and Educational Use
+- This code is primarily human-written for educational purposes
+- AI assistance was used for code review, optimization, and documentation
+- Students and learners are encouraged to study, modify, and learn from this code
+- Educational institutions may use this project for teaching purposes
+
+### Attribution Requirements
+- Maintain original author attribution when using or modifying this code
+- Clearly indicate any modifications made to the original source
+- If using this project as a learning reference, acknowledge the source
+
+### Commercial Use Guidelines
+- Commercial use is permitted under MIT License terms
+- Consider contributing improvements back to the educational community
+- Respect the educational nature of the extensively commented code
+
+### Responsible Use
+- Users must comply with platform terms of service when downloading media
+- Respect copyright laws and content creators' rights
+- Use only for personal or educational purposes unless properly licensed
+- The author is not responsible for misuse of the software
+
+### Developer Learning Focus
+This project prioritizes:
+- Code readability and educational value over performance optimization
+- Extensive commenting for learning purposes
+- Clear architectural patterns for educational demonstration
+- Best practices in modern web development
