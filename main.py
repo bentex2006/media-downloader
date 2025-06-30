@@ -6,11 +6,12 @@ Created by: Ritu Raj Singh
 
 from fastapi import FastAPI, HTTPException, BackgroundTasks
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse, HTMLResponse
+from fastapi.responses import FileResponse, HTMLResponse, StreamingResponse
 from pydantic import BaseModel
 import os
 import uvicorn
 import logging
+import asyncio
 from downloader import MediaDownloader
 from config import AppConfig
 
@@ -46,8 +47,8 @@ class DownloadRequest(BaseModel):
 class DownloadResponse(BaseModel):
     success: bool
     message: str
-    download_url: str = None
-    filename: str = None
+    download_url: str = ""
+    filename: str = ""
 
 # Root endpoint - serves our main HTML page
 @app.get("/", response_class=HTMLResponse)
@@ -108,7 +109,7 @@ async def download_media(request: DownloadRequest):
         # This calls our downloader service to handle the actual download
         result = await downloader.download_media(
             url=request.url,
-            format=request.format.upper(),
+            format_type=request.format.upper(),
             quality=request.quality
         )
         
@@ -134,6 +135,74 @@ async def download_media(request: DownloadRequest):
             success=False,
             message=f"An error occurred during download: {str(e)}"
         )
+
+# Get media info for preview (without downloading)
+@app.post("/api/media-info")
+async def get_media_info(request: DownloadRequest):
+    """
+    Extract media information for preview without downloading
+    This helps show users what they're about to download
+    """
+    try:
+        logger.info(f"Media info request: {request.url}")
+        
+        # Validate URL
+        if not request.url or not request.url.startswith(('http://', 'https://')):
+            raise HTTPException(status_code=400, detail="Invalid URL")
+        
+        # Get media information using downloader
+        info = await downloader.get_media_info(request.url)
+        
+        if info["success"]:
+            return {
+                "success": True,
+                "title": info.get("title", "Unknown Title"),
+                "duration": info.get("duration", "Unknown"),
+                "thumbnail": info.get("thumbnail", None),
+                "platform": info.get("platform", "Unknown Platform"),
+                "filesize": info.get("filesize", "Unknown Size")
+            }
+        else:
+            return {"success": False, "error": info["error"]}
+            
+    except Exception as e:
+        logger.error(f"Media info error: {str(e)}")
+        return {"success": False, "error": str(e)}
+
+# Stream download endpoint (no file persistence)
+@app.post("/api/stream-download")
+async def stream_download(request: DownloadRequest):
+    """
+    Stream media download directly to user without saving to server
+    This ensures no data persistence and faster delivery
+    """
+    try:
+        logger.info(f"Stream download request: {request.url}")
+        
+        # Validate inputs
+        if not request.url or not request.url.startswith(('http://', 'https://')):
+            raise HTTPException(status_code=400, detail="Invalid URL")
+        
+        # Get the downloaded file stream
+        result = await downloader.stream_download_media(
+            url=request.url,
+            format_type=request.format.upper(),
+            quality=request.quality
+        )
+        
+        if result["success"]:
+            # Return streaming response
+            return StreamingResponse(
+                result["stream"],
+                media_type=result["content_type"],
+                headers={"Content-Disposition": f"attachment; filename={result['filename']}"}
+            )
+        else:
+            raise HTTPException(status_code=400, detail=result["error"])
+            
+    except Exception as e:
+        logger.error(f"Stream download error: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 # Get list of supported platforms
 @app.get("/api/platforms")

@@ -5,6 +5,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Multi-Platform Media Downloader</title>
     
+    <!-- Site Icon and Manifest -->
+    <link rel="icon" type="image/svg+xml" href="/static/logo.svg">
+    <link rel="alternate icon" href="/static/favicon.ico">
+    <link rel="apple-touch-icon" href="/static/icon-192.png">
+    
+    <!-- Meta Tags for Better SEO -->
+    <meta name="description" content="Download videos, music, and images from social media platforms. Fast, free, and ad-free media downloader.">
+    <meta name="keywords" content="video downloader, youtube downloader, instagram downloader, media downloader">
+    <meta name="author" content="Ritu Raj Singh">
+    
     <!-- TailwindCSS CDN for styling -->
     <script src="https://cdn.tailwindcss.com"></script>
     
@@ -33,6 +43,46 @@
 </head>
 
 <body class="dark bg-gradient-to-br from-dark via-dark-lighter to-slate-800 min-h-screen text-white">
+    
+    <!-- Top Navigation -->
+    <nav class="bg-dark-lighter/80 backdrop-blur-sm border-b border-gray-700/50 sticky top-0 z-50">
+        <div class="container mx-auto px-4 py-3 max-w-4xl">
+            <div class="flex justify-between items-center">
+                <!-- Logo and Title -->
+                <div class="flex items-center space-x-3">
+                    <img src="/static/logo.svg" alt="Media Downloader" class="w-8 h-8">
+                    <h1 class="text-lg font-semibold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
+                        Media Downloader
+                    </h1>
+                </div>
+                
+                <!-- Navigation Links -->
+                <div class="flex items-center space-x-4">
+                    <a href="https://github.com/riturajsingh" target="_blank" 
+                       class="flex items-center text-gray-400 hover:text-primary transition-colors duration-200 text-sm">
+                        <i class="fab fa-github mr-1"></i>
+                        <span class="hidden sm:inline">GitHub</span>
+                    </a>
+                    <a href="https://linktr.ee/riturajsingh" target="_blank" 
+                       class="flex items-center text-gray-400 hover:text-secondary transition-colors duration-200 text-sm">
+                        <i class="fas fa-link mr-1"></i>
+                        <span class="hidden sm:inline">Links</span>
+                    </a>
+                    <a href="https://github.com/riturajsingh/media-downloader" target="_blank" 
+                       class="flex items-center text-gray-400 hover:text-green-400 transition-colors duration-200 text-sm">
+                        <i class="fas fa-code-branch mr-1"></i>
+                        <span class="hidden sm:inline">Source</span>
+                    </a>
+                    <a href="https://buymeacoffee.com/riturajsingh" target="_blank" 
+                       class="flex items-center bg-yellow-600 hover:bg-yellow-500 text-white px-3 py-1 rounded-full transition-colors duration-200 text-sm">
+                        <i class="fas fa-coffee mr-1"></i>
+                        <span class="hidden sm:inline">Coffee</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
     <!-- Main Container -->
     <div class="container mx-auto px-4 py-8 max-w-4xl">
         
@@ -168,18 +218,43 @@
             <!-- Progress Section (Hidden by default) -->
             <div id="progress-section" class="hidden mt-6">
                 <div class="bg-dark-lighter/50 backdrop-blur-sm rounded-2xl p-6 shadow-2xl border border-gray-700/50">
+                    <!-- Media Preview (when available) -->
+                    <div id="media-preview" class="hidden mb-6">
+                        <div class="flex items-start space-x-4">
+                            <div id="preview-thumbnail" class="w-20 h-20 bg-gray-700 rounded-lg flex items-center justify-center">
+                                <i class="fas fa-image text-gray-400"></i>
+                            </div>
+                            <div class="flex-1">
+                                <h4 id="media-title" class="text-white font-medium text-sm mb-1 line-clamp-2">Loading media information...</h4>
+                                <p id="media-info" class="text-gray-400 text-xs">Extracting details...</p>
+                                <div class="flex items-center space-x-2 mt-2">
+                                    <span id="media-duration" class="text-xs bg-gray-700 px-2 py-1 rounded"></span>
+                                    <span id="media-size" class="text-xs bg-gray-700 px-2 py-1 rounded"></span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
                     <div class="flex items-center mb-3">
                         <i class="fas fa-download text-primary mr-2"></i>
                         <span class="text-sm font-medium text-gray-300">Download Progress</span>
+                        <span id="progress-percentage" class="ml-auto text-primary font-medium">0%</span>
                     </div>
                     
-                    <!-- Progress Bar -->
-                    <div class="w-full bg-gray-700 rounded-full h-2.5 mb-4">
-                        <div id="progress-bar" class="bg-gradient-to-r from-primary to-secondary h-2.5 rounded-full transition-all duration-300" style="width: 0%"></div>
+                    <!-- Enhanced Progress Bar -->
+                    <div class="w-full bg-gray-700 rounded-full h-3 mb-4 overflow-hidden">
+                        <div id="progress-bar" class="bg-gradient-to-r from-primary to-secondary h-3 rounded-full transition-all duration-300 relative" style="width: 0%">
+                            <div class="absolute inset-0 bg-white/20 rounded-full animate-pulse"></div>
+                        </div>
                     </div>
                     
-                    <div id="progress-text" class="text-sm text-gray-400 text-center">
-                        Initializing download...
+                    <div class="flex justify-between items-center">
+                        <div id="progress-text" class="text-sm text-gray-400">
+                            Initializing download...
+                        </div>
+                        <div id="progress-speed" class="text-xs text-gray-500">
+                            <!-- Download speed will show here -->
+                        </div>
                     </div>
                 </div>
             </div>
@@ -211,14 +286,23 @@
                             </div>
                         </div>
                         
-                        <a 
-                            id="download-link" 
-                            class="block w-full bg-green-500 hover:bg-green-600 text-white font-semibold py-3 px-6 rounded-xl text-center transition-colors duration-200"
-                            download
-                        >
-                            <i class="fas fa-download mr-2"></i>
-                            Download File
-                        </a>
+                        <div class="flex space-x-3">
+                            <a 
+                                id="download-link" 
+                                class="flex-1 bg-green-500 hover:bg-green-600 text-white font-semibold py-3 px-6 rounded-xl text-center transition-colors duration-200 block"
+                                download
+                            >
+                                <i class="fas fa-download mr-2"></i>
+                                Download File
+                            </a>
+                            <button 
+                                id="download-another" 
+                                class="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-3 px-4 rounded-xl transition-colors duration-200"
+                                title="Download Another"
+                            >
+                                <i class="fas fa-plus"></i>
+                            </button>
+                        </div>
                     </div>
 
                     <!-- Error Result -->

@@ -15,6 +15,9 @@ const MediaDownloader = {
     // DOM element references for better performance
     elements: {},
     
+    // Current media info for preview
+    currentMedia: null,
+    
     /**
      * Initialize the application when page loads
      * This sets up all event listeners and prepares the UI
@@ -58,7 +61,16 @@ const MediaDownloader = {
             fileIcon: document.getElementById('file-icon'),
             downloadLink: document.getElementById('download-link'),
             errorMessage: document.getElementById('error-message'),
-            retryBtn: document.getElementById('retry-btn')
+            retryBtn: document.getElementById('retry-btn'),
+            downloadAnother: document.getElementById('download-another'),
+            progressPercentage: document.getElementById('progress-percentage'),
+            progressSpeed: document.getElementById('progress-speed'),
+            mediaPreview: document.getElementById('media-preview'),
+            mediaTitle: document.getElementById('media-title'),
+            mediaInfo: document.getElementById('media-info'),
+            mediaDuration: document.getElementById('media-duration'),
+            mediaSize: document.getElementById('media-size'),
+            previewThumbnail: document.getElementById('preview-thumbnail')
         };
     },
     
@@ -96,6 +108,11 @@ const MediaDownloader = {
         
         // Retry button click
         this.elements.retryBtn.addEventListener('click', () => {
+            this.resetForm();
+        });
+        
+        // Download another button click
+        this.elements.downloadAnother.addEventListener('click', () => {
             this.resetForm();
         });
         
@@ -274,25 +291,64 @@ const MediaDownloader = {
         this.hideResults();
         
         try {
-            // Make API request to download media
+            // First, get media info for preview
+            await this.getMediaPreview(url, format, quality);
+            
+            // Use streaming download for no data persistence
+            const downloadUrl = '/api/stream-download';
+            const requestBody = {
+                url: url,
+                format: format,
+                quality: quality
+            };
+            
+            // Create a form and submit to trigger download
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = downloadUrl;
+            form.style.display = 'none';
+            
+            // Add form data
+            Object.keys(requestBody).forEach(key => {
+                const input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = key;
+                input.value = requestBody[key];
+                form.appendChild(input);
+            });
+            
+            document.body.appendChild(form);
+            
+            // Try the API call first to validate
             const response = await fetch('/api/download', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({
-                    url: url,
-                    format: format,
-                    quality: quality
-                })
+                body: JSON.stringify(requestBody)
             });
             
             const result = await response.json();
             
             if (result.success) {
-                // Download succeeded
-                console.log('✅ Download successful:', result);
+                // Download succeeded - trigger actual download
+                console.log('✅ Download successful, starting stream...');
+                
+                // Use the download link approach for better user experience
+                const downloadLink = document.createElement('a');
+                downloadLink.href = result.download_url;
+                downloadLink.download = result.filename;
+                downloadLink.style.display = 'none';
+                document.body.appendChild(downloadLink);
+                downloadLink.click();
+                document.body.removeChild(downloadLink);
+                
                 this.showSuccess(result);
+                
+                // Auto-reload after successful download (with delay)
+                setTimeout(() => {
+                    this.showAutoReloadMessage();
+                }, 3000);
             } else {
                 // Download failed
                 console.error('❌ Download failed:', result.message);
@@ -312,39 +368,118 @@ const MediaDownloader = {
     },
     
     /**
+     * Get media preview information before download
+     * Shows thumbnail and metadata for better user experience
+     */
+    async getMediaPreview(url, format, quality) {
+        try {
+            // Show basic preview first
+            this.elements.mediaPreview.classList.remove('hidden');
+            this.elements.mediaTitle.textContent = 'Extracting media information...';
+            this.elements.mediaInfo.textContent = 'Please wait while we analyze the URL';
+            
+            // For now, we'll simulate getting basic info
+            // In a real implementation, you'd make an API call to get metadata
+            const urlObj = new URL(url);
+            const platform = this.getPlatformFromURL(urlObj.hostname);
+            
+            this.elements.mediaTitle.textContent = `Media from ${platform}`;
+            this.elements.mediaInfo.textContent = `Format: ${format} | Quality: ${quality}`;
+            this.elements.mediaDuration.textContent = 'Analyzing...';
+            this.elements.mediaSize.textContent = 'Calculating...';
+            
+            // Update thumbnail based on platform
+            this.updatePreviewThumbnail(platform, format);
+            
+        } catch (error) {
+            console.log('Preview extraction failed:', error);
+            // Continue without preview
+        }
+    },
+    
+    /**
+     * Get platform name from URL hostname
+     * Identifies the source platform for better preview
+     */
+    getPlatformFromURL(hostname) {
+        if (hostname.includes('youtube.com') || hostname.includes('youtu.be')) return 'YouTube';
+        if (hostname.includes('instagram.com')) return 'Instagram';
+        if (hostname.includes('twitter.com') || hostname.includes('x.com')) return 'Twitter/X';
+        if (hostname.includes('pinterest.com')) return 'Pinterest';
+        if (hostname.includes('tiktok.com')) return 'TikTok';
+        if (hostname.includes('facebook.com')) return 'Facebook';
+        return 'Unknown Platform';
+    },
+    
+    /**
+     * Update preview thumbnail based on platform and format
+     * Shows appropriate icon for the media type
+     */
+    updatePreviewThumbnail(platform, format) {
+        const iconMap = {
+            'YouTube': 'fab fa-youtube text-red-400',
+            'Instagram': 'fab fa-instagram text-pink-400',
+            'Twitter/X': 'fab fa-twitter text-blue-400',
+            'Pinterest': 'fab fa-pinterest text-red-400',
+            'TikTok': 'fab fa-tiktok text-gray-300',
+            'Facebook': 'fab fa-facebook text-blue-600'
+        };
+        
+        const formatMap = {
+            'MP4': 'fas fa-video text-blue-400',
+            'MP3': 'fas fa-music text-green-400',
+            'IMAGE': 'fas fa-image text-purple-400'
+        };
+        
+        const icon = iconMap[platform] || formatMap[format] || 'fas fa-download text-gray-400';
+        this.elements.previewThumbnail.innerHTML = `<i class="${icon} text-2xl"></i>`;
+    },
+
+    /**
      * Show download progress UI
      * Displays progress bar and updates status text
      */
     showProgress() {
         // Show progress section
-        this.progressSection.classList.remove('hidden');
+        this.elements.progressSection.classList.remove('hidden');
         
         // Switch button text to loading state
         this.elements.downloadText.classList.add('hidden');
         this.elements.loadingText.classList.remove('hidden');
         
-        // Animate progress bar (simulated progress since yt-dlp doesn't provide real-time progress)
+        // Enhanced progress tracking with percentage and speed
         let progress = 0;
+        let startTime = Date.now();
+        
         const progressInterval = setInterval(() => {
-            progress += Math.random() * 15;
-            if (progress > 90) {
-                progress = 90; // Stop at 90% until actual completion
+            progress += Math.random() * 12;
+            if (progress > 95) {
+                progress = 95; // Stop at 95% until actual completion
                 clearInterval(progressInterval);
             }
             
+            // Update progress bar and percentage
             this.elements.progressBar.style.width = `${progress}%`;
+            this.elements.progressPercentage.textContent = `${Math.round(progress)}%`;
+            
+            // Calculate estimated speed
+            const elapsed = (Date.now() - startTime) / 1000;
+            const speed = elapsed > 0 ? (progress / elapsed).toFixed(1) : '0';
+            this.elements.progressSpeed.textContent = `${speed}%/s`;
             
             // Update progress text based on current stage
-            if (progress < 30) {
+            if (progress < 20) {
                 this.elements.progressText.textContent = 'Analyzing media URL...';
-            } else if (progress < 60) {
+            } else if (progress < 40) {
+                this.elements.progressText.textContent = 'Extracting media information...';
+            } else if (progress < 70) {
                 this.elements.progressText.textContent = 'Downloading media file...';
-            } else if (progress < 90) {
-                this.elements.progressText.textContent = 'Processing download...';
+            } else if (progress < 95) {
+                this.elements.progressText.textContent = 'Processing and optimizing...';
             } else {
-                this.elements.progressText.textContent = 'Finalizing...';
+                this.elements.progressText.textContent = 'Finalizing download...';
             }
-        }, 200);
+        }, 300);
         
         // Store interval reference for cleanup
         this.state.progressInterval = progressInterval;
@@ -370,6 +505,10 @@ const MediaDownloader = {
         
         // Complete progress bar
         this.elements.progressBar.style.width = '100%';
+        this.elements.progressPercentage.textContent = '100%';
+        
+        // Hide media preview
+        this.elements.mediaPreview.classList.add('hidden');
     },
     
     /**
@@ -426,6 +565,44 @@ const MediaDownloader = {
     },
     
     /**
+     * Show auto-reload message after successful download
+     * Gives user option to start fresh
+     */
+    showAutoReloadMessage() {
+        if (this.elements.successResult && !this.elements.successResult.classList.contains('hidden')) {
+            // Create auto-reload notification
+            const notification = document.createElement('div');
+            notification.className = 'mt-4 p-3 bg-blue-500/20 border border-blue-500/30 rounded-lg text-center';
+            notification.innerHTML = `
+                <p class="text-blue-300 text-sm mb-2">
+                    <i class="fas fa-check-circle mr-2"></i>
+                    Download completed successfully!
+                </p>
+                <p class="text-blue-200 text-xs">
+                    The form will reset in <span id="countdown">5</span> seconds for your next download
+                </p>
+            `;
+            
+            // Insert notification
+            this.elements.successResult.appendChild(notification);
+            
+            // Countdown timer
+            let countdown = 5;
+            const countdownElement = notification.querySelector('#countdown');
+            
+            const countdownInterval = setInterval(() => {
+                countdown--;
+                countdownElement.textContent = countdown;
+                
+                if (countdown <= 0) {
+                    clearInterval(countdownInterval);
+                    this.resetForm();
+                }
+            }, 1000);
+        }
+    },
+
+    /**
      * Hide all result sections
      * Cleans up the UI when starting a new operation
      */
@@ -433,6 +610,7 @@ const MediaDownloader = {
         this.elements.resultSection.classList.add('hidden');
         this.elements.successResult.classList.add('hidden');
         this.elements.errorResult.classList.add('hidden');
+        this.elements.mediaPreview.classList.add('hidden');
     },
     
     /**

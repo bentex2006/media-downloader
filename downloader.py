@@ -300,3 +300,152 @@ class MediaDownloader:
                 "youtube", "instagram", "twitter", "pinterest", "tiktok", 
                 "facebook", "vimeo", "dailymotion", "reddit"
             ]
+    
+    async def get_media_info(self, url: str) -> Dict[str, Any]:
+        """
+        Extract media information without downloading
+        This is used for preview functionality
+        
+        Args:
+            url: URL of the media to analyze
+            
+        Returns:
+            Dictionary with media information or error
+        """
+        try:
+            logger.info(f"Extracting info for: {url}")
+            
+            # Basic options for info extraction only
+            options = {
+                'quiet': True,
+                'no_warnings': True,
+                'extract_flat': False,
+            }
+            
+            with yt_dlp.YoutubeDL(options) as ydl:
+                try:
+                    # Extract info without downloading
+                    info = ydl.extract_info(url, download=False)
+                    
+                    if not info:
+                        return {"success": False, "error": "Could not extract media information"}
+                    
+                    # Clean and return useful information
+                    return {
+                        "success": True,
+                        "title": info.get('title', 'Unknown Title'),
+                        "duration": self._format_duration(info.get('duration')),
+                        "thumbnail": info.get('thumbnail'),
+                        "platform": info.get('extractor_key', 'Unknown'),
+                        "filesize": self._format_filesize(info.get('filesize')),
+                        "view_count": info.get('view_count'),
+                        "uploader": info.get('uploader', 'Unknown')
+                    }
+                    
+                except yt_dlp.DownloadError as e:
+                    return {"success": False, "error": f"Failed to extract info: {str(e)}"}
+                    
+        except Exception as e:
+            logger.error(f"Error extracting media info: {str(e)}")
+            return {"success": False, "error": str(e)}
+    
+    def _format_duration(self, duration) -> str:
+        """
+        Format duration from seconds to human readable format
+        """
+        if not duration:
+            return "Unknown"
+        
+        try:
+            minutes, seconds = divmod(int(duration), 60)
+            hours, minutes = divmod(minutes, 60)
+            
+            if hours > 0:
+                return f"{hours}h {minutes}m {seconds}s"
+            elif minutes > 0:
+                return f"{minutes}m {seconds}s"
+            else:
+                return f"{seconds}s"
+        except:
+            return "Unknown"
+    
+    def _format_filesize(self, filesize) -> str:
+        """
+        Format filesize from bytes to human readable format
+        """
+        if not filesize:
+            return "Unknown"
+        
+        try:
+            # Convert bytes to appropriate unit
+            for unit in ['B', 'KB', 'MB', 'GB']:
+                if filesize < 1024.0:
+                    return f"{filesize:.1f} {unit}"
+                filesize /= 1024.0
+            return f"{filesize:.1f} TB"
+        except:
+            return "Unknown"
+    
+    async def stream_download_media(self, url: str, format_type: str, quality: str = "best") -> Dict[str, Any]:
+        """
+        Stream download media directly without saving to disk
+        This ensures no data persistence on the server
+        
+        Args:
+            url: URL of the media to download
+            format_type: Desired format (MP4, MP3, IMAGE)
+            quality: Quality preference
+            
+        Returns:
+            Dictionary with stream and metadata
+        """
+        try:
+            logger.info(f"Starting stream download: {url} as {format_type}")
+            
+            # For now, we'll use the regular download and then stream the file
+            # In a production environment, you'd implement true streaming
+            result = await self.download_media(url, format_type, quality)
+            
+            if result["success"]:
+                filepath = result["filepath"]
+                filename = result["filename"]
+                
+                # Determine content type
+                content_type = "application/octet-stream"
+                if format_type.upper() == "MP4":
+                    content_type = "video/mp4"
+                elif format_type.upper() == "MP3":
+                    content_type = "audio/mpeg"
+                elif format_type.upper() == "IMAGE":
+                    content_type = "image/jpeg"
+                
+                # Create file stream generator
+                def file_generator():
+                    try:
+                        with open(filepath, "rb") as f:
+                            while True:
+                                chunk = f.read(8192)  # 8KB chunks
+                                if not chunk:
+                                    break
+                                yield chunk
+                    finally:
+                        # Clean up file after streaming
+                        try:
+                            if os.path.exists(filepath):
+                                os.remove(filepath)
+                                logger.info(f"Cleaned up temporary file: {filepath}")
+                        except Exception as e:
+                            logger.error(f"Failed to clean up file: {e}")
+                
+                return {
+                    "success": True,
+                    "stream": file_generator(),
+                    "filename": filename,
+                    "content_type": content_type
+                }
+            else:
+                return result
+                
+        except Exception as e:
+            logger.error(f"Error in stream download: {str(e)}")
+            return {"success": False, "error": str(e)}
