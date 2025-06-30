@@ -1,0 +1,3 @@
+# This file ensures the downloads directory is tracked by git
+# The downloads folder is where all media files will be temporarily stored
+# Files in this directory are served to users for download

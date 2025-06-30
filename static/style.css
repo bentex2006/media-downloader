@@ -1,0 +1,296 @@
+/* 
+Custom CSS for Multi-Platform Media Downloader
+This file contains additional styling that complements TailwindCSS
+Created by: Ritu Raj Singh
+*/
+
+/* Global Styles and Animations */
+
+* {
+    /* Smooth scrolling for better user experience */
+    scroll-behavior: smooth;
+}
+
+body {
+    /* Prevent horizontal scrolling on mobile */
+    overflow-x: hidden;
+}
+
+/* Glow Effects for Interactive Elements */
+
+.glow-effect {
+    /* Subtle glow effect for the main app icon */
+    box-shadow: 0 0 20px rgba(59, 130, 246, 0.3);
+    transition: box-shadow 0.3s ease;
+}
+
+.glow-effect:hover {
+    /* Enhanced glow on hover */
+    box-shadow: 0 0 30px rgba(59, 130, 246, 0.5);
+}
+
+/* Custom Radio Button Styling */
+
+.radio-custom {
+    /* Base styling for custom radio buttons */
+    width: 20px;
+    height: 20px;
+    border: 2px solid #4b5563;
+    border-radius: 50%;
+    background: transparent;
+    position: relative;
+    transition: all 0.3s ease;
+}
+
+/* When radio is checked, show the inner circle */
+input[type="radio"]:checked + .radio-custom {
+    border-color: #3b82f6;
+    background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+}
+
+input[type="radio"]:checked + .radio-custom::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 8px;
+    height: 8px;
+    background: white;
+    border-radius: 50%;
+}
+
+/* Loading Animation */
+
+@keyframes pulse {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.5;
+    }
+}
+
+.animate-pulse {
+    animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* Progress Bar Animation */
+
+@keyframes progressSlide {
+    0% {
+        transform: translateX(-100%);
+    }
+    100% {
+        transform: translateX(0);
+    }
+}
+
+#progress-bar {
+    /* Smooth transition for progress bar */
+    transition: width 0.5s ease-in-out;
+}
+
+/* Button Hover Effects */
+
+button {
+    /* Ensure all buttons have smooth transitions */
+    transition: all 0.3s ease;
+}
+
+button:hover:not(:disabled) {
+    /* Subtle lift effect on hover */
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+button:active:not(:disabled) {
+    /* Slight press effect when clicked */
+    transform: translateY(0);
+}
+
+/* Input Field Focus Effects */
+
+input:focus, select:focus {
+    /* Enhanced focus ring for better accessibility */
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+/* Card Hover Effects */
+
+.bg-dark-lighter\/50:hover {
+    /* Subtle hover effect for cards */
+    background-color: rgba(30, 41, 59, 0.6);
+    transition: background-color 0.3s ease;
+}
+
+/* Scroll Bar Styling for Webkit Browsers */
+
+::-webkit-scrollbar {
+    width: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: #1e293b;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #4b5563;
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #6b7280;
+}
+
+/* File Icon Styling */
+
+#file-icon {
+    /* Dynamic icon that changes based on file type */
+    transition: color 0.3s ease;
+}
+
+/* Success and Error State Animations */
+
+@keyframes slideInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+#result-section {
+    /* Smooth appearance animation */
+    animation: slideInUp 0.5s ease-out;
+}
+
+/* Mobile Responsive Adjustments */
+
+@media (max-width: 768px) {
+    /* Reduce glow effects on mobile for better performance */
+    .glow-effect {
+        box-shadow: 0 0 10px rgba(59, 130, 246, 0.2);
+    }
+    
+    .glow-effect:hover {
+        box-shadow: 0 0 15px rgba(59, 130, 246, 0.3);
+    }
+    
+    /* Larger touch targets for mobile */
+    button {
+        min-height: 44px;
+    }
+    
+    input, select {
+        min-height: 44px;
+    }
+}
+
+/* High Contrast Mode Support */
+
+@media (prefers-contrast: high) {
+    /* Increase contrast for accessibility */
+    .bg-dark-lighter\/50 {
+        background-color: rgba(30, 41, 59, 0.8);
+    }
+    
+    .border-gray-700\/50 {
+        border-color: #4b5563;
+    }
+}
+
+/* Reduced Motion Support */
+
+@media (prefers-reduced-motion: reduce) {
+    /* Disable animations for users who prefer reduced motion */
+    *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}
+
+/* Print Styles */
+
+@media print {
+    /* Hide unnecessary elements when printing */
+    #progress-section,
+    #result-section,
+    footer {
+        display: none;
+    }
+    
+    body {
+        background: white !important;
+        color: black !important;
+    }
+}
+
+/* Focus Visible Support for Better Accessibility */
+
+button:focus-visible,
+input:focus-visible,
+select:focus-visible {
+    outline: 2px solid #3b82f6;
+    outline-offset: 2px;
+}
+
+/* Gradient Text Animation */
+
+@keyframes gradient {
+    0% {
+        background-position: 0% 50%;
+    }
+    50% {
+        background-position: 100% 50%;
+    }
+    100% {
+        background-position: 0% 50%;
+    }
+}
+
+.bg-gradient-to-r.bg-clip-text {
+    background-size: 200% 200%;
+    animation: gradient 3s ease infinite;
+}
+
+/* Loading Spinner Animation */
+
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.fa-spin {
+    animation: spin 1s linear infinite;
+}
+
+/* Custom Tooltip Styles */
+
+[data-tooltip] {
+    position: relative;
+}
+
+[data-tooltip]:hover::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #1f2937;
+    color: white;
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    white-space: nowrap;
+    z-index: 1000;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
