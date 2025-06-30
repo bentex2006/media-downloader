@@ -30,12 +30,30 @@ class MediaDownloader:
         # Ensure downloads directory exists
         os.makedirs(AppConfig.DOWNLOADS_DIR, exist_ok=True)
         
-        # Basic yt-dlp options that work for most cases
+        # Optimized yt-dlp options for faster downloads
         self.base_options = {
             'outtmpl': os.path.join(AppConfig.DOWNLOADS_DIR, '%(title)s.%(ext)s'),
             'noplaylist': True,  # Don't download entire playlists
             'extract_flat': False,  # Get full metadata
             'ignoreerrors': True,  # Continue on minor errors
+            
+            # Performance optimizations
+            'concurrent_fragment_downloads': 4,  # Download multiple fragments simultaneously
+            'retries': 3,  # Retry failed downloads
+            'fragment_retries': 3,  # Retry failed fragments
+            'http_chunk_size': 10485760,  # 10MB chunks for better throughput
+            'buffersize': 1024,  # Buffer size for network operations
+            
+            # Network optimizations
+            'socket_timeout': 30,  # Faster timeout for stuck connections
+            'geo_bypass': True,  # Bypass geographic restrictions
+            'prefer_insecure': False,  # Use HTTPS when available
+            
+            # Quality optimizations for speed
+            'writesubtitles': False,  # Skip subtitles for faster download
+            'writeautomaticsub': False,  # Skip auto-generated subs
+            'writethumbnail': False,  # Skip thumbnail download
+            'writeinfojson': False,  # Skip metadata file
         }
     
     def _sanitize_filename(self, filename: str) -> str:
@@ -81,17 +99,18 @@ class MediaDownloader:
         format_type = format_type.upper()
         
         if format_type == "MP4":
-            # Video format selectors
+            # Optimized video format selectors for speed
             if quality == "best":
-                return "best[ext=mp4]/best"
+                # Prefer native MP4 formats to avoid re-encoding
+                return "best[ext=mp4][protocol!=m3u8]/bestvideo[ext=mp4]+bestaudio[ext=m4a]/best"
             elif quality == "worst":
                 return "worst[ext=mp4]/worst"
             elif quality.endswith("p"):
-                # Specific resolution like 720p, 480p
+                # Specific resolution like 720p, 480p - prefer native formats
                 height = quality[:-1]
-                return f"best[height<={height}][ext=mp4]/best[height<={height}]"
+                return f"best[height<={height}][ext=mp4][protocol!=m3u8]/best[height<={height}]"
             else:
-                return "best[ext=mp4]/best"
+                return "best[ext=mp4][protocol!=m3u8]/best"
                 
         elif format_type == "MP3":
             # Audio format selectors
@@ -130,17 +149,28 @@ class MediaDownloader:
         # Set format selector
         options['format'] = self._get_format_selector(format_type, quality)
         
-        # Configure post-processors based on format type
+        # Optimized post-processors for faster conversion
         if format_type == "MP3":
-            # Convert to MP3 if not already in audio format
+            # Fast audio extraction with optimized settings
+            quality_map = {
+                "best": "320",
+                "320k": "320", 
+                "256k": "256",
+                "192k": "192", 
+                "128k": "128",
+                "worst": "128"
+            }
+            audio_quality = quality_map.get(quality, "192")
+            
             options['postprocessors'] = [{
                 'key': 'FFmpegExtractAudio',
                 'preferredcodec': 'mp3',
-                'preferredquality': '192',
+                'preferredquality': audio_quality,
+                'nopostoverwrites': False,  # Faster processing
             }]
             
         elif format_type == "MP4":
-            # Ensure we get MP4 format
+            # Only convert if absolutely necessary - prefer native MP4
             options['postprocessors'] = [{
                 'key': 'FFmpegVideoConvertor',
                 'preferedformat': 'mp4',
@@ -225,17 +255,30 @@ class MediaDownloader:
             
             options['outtmpl'] = filepath
             
+            # Add progress hook for better performance tracking
+            def progress_hook(d):
+                if d['status'] == 'downloading':
+                    speed = d.get('speed', 0)
+                    if speed:
+                        logger.info(f"Download speed: {speed/1024/1024:.1f} MB/s")
+                elif d['status'] == 'finished':
+                    logger.info(f"Download finished: {d['filename']}")
+            
+            options['progress_hooks'] = [progress_hook]
+            
             with yt_dlp.YoutubeDL(options) as ydl:
                 try:
                     # Perform the actual download
                     logger.info(f"Downloading to: {filepath}")
                     
-                    # Run download in thread pool to avoid blocking
-                    loop = asyncio.get_event_loop()
-                    await loop.run_in_executor(
-                        None, 
-                        lambda: ydl.download([url])
-                    )
+                    # Use thread pool executor with optimized settings for faster execution
+                    import concurrent.futures
+                    with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
+                        loop = asyncio.get_event_loop()
+                        await loop.run_in_executor(
+                            executor, 
+                            lambda: ydl.download([url])
+                        )
                     
                     # Check if file was created successfully
                     if os.path.exists(filepath):
