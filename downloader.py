@@ -25,10 +25,20 @@ class MediaDownloader:
     def __init__(self):
         """
         Initialize the downloader with default settings
-        Sets up the basic configuration for yt-dlp
+        Sets up the basic configuration for yt-dlp with long-term stability
         """
         # Ensure downloads directory exists
         os.makedirs(AppConfig.DOWNLOADS_DIR, exist_ok=True)
+        
+        # Initialize fallback user agents for rotation
+        self.user_agents = [
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:120.0) Gecko/20100101 Firefox/120.0',
+            'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:120.0) Gecko/20100101 Firefox/120.0'
+        ]
+        self.current_ua_index = 0
         
         # Optimized yt-dlp options for faster downloads
         self.base_options = {
@@ -54,6 +64,38 @@ class MediaDownloader:
             'writeinfojson': False,  # Skip metadata file
             'embed_chapters': False,  # Skip chapters
             'embed_subs': False,  # Skip embedded subtitles
+            
+            # Long-term stability fixes for YouTube cookies and authentication
+            'extractor_args': {
+                'youtube': {
+                    'player_client': ['android', 'web'],  # Use multiple clients for reliability
+                    'player_skip': ['webpage'],  # Skip webpage parsing that can break
+                    'comment_sort': ['top'],  # Optimize comment extraction
+                    'max_comments': [0],  # Disable comments to avoid API limits
+                }
+            },
+            
+            # Additional stability options
+            'age_limit': None,  # Don't restrict age-limited content
+            'ignoreerrors': True,  # Continue on errors
+            'no_check_certificate': False,  # Use proper SSL verification
+            'prefer_ffmpeg': True,  # Prefer ffmpeg for processing
+            
+            # Anti-detection measures for long-term stability
+            'http_headers': {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+                'Accept-Language': 'en-us,en;q=0.5',
+                'Accept-Encoding': 'gzip,deflate',
+                'Accept-Charset': 'ISO-8859-1,utf-8;q=0.7,*;q=0.7',
+                'Keep-Alive': '115',
+                'Connection': 'keep-alive',
+            },
+            
+            # Bypass restrictions and rate limiting
+            'sleep_interval': 1,  # Small delay between requests
+            'max_sleep_interval': 5,  # Maximum sleep interval
+            'sleep_interval_requests': 1,  # Sleep between subtitle requests
         }
     
     def _sanitize_filename(self, filename: str) -> str:
@@ -83,6 +125,41 @@ class MediaDownloader:
             filename = "downloaded_media"
         
         return filename
+    
+    def _get_next_user_agent(self):
+        """
+        Get next user agent for rotation to avoid detection
+        """
+        user_agent = self.user_agents[self.current_ua_index]
+        self.current_ua_index = (self.current_ua_index + 1) % len(self.user_agents)
+        return user_agent
+    
+    def _get_fallback_options(self, original_options):
+        """
+        Get fallback yt-dlp options for when primary extraction fails
+        This helps with YouTube cookies and authentication issues
+        """
+        fallback_options = original_options.copy()
+        
+        # Use different user agent
+        fallback_options['http_headers']['User-Agent'] = self._get_next_user_agent()
+        
+        # More aggressive extractor arguments for difficult cases
+        fallback_options['extractor_args'] = {
+            'youtube': {
+                'player_client': ['android', 'ios', 'web'],
+                'player_skip': ['webpage', 'configs'],
+                'skip': ['translated_subs'],
+                'lang': ['en'],
+                'include_live_dash': [False]
+            }
+        }
+        
+        # Remove format sorting that might be too restrictive
+        if 'format_sort' in fallback_options:
+            del fallback_options['format_sort']
+        
+        return fallback_options
     
     def _get_format_selector(self, format_type: str, quality: str) -> str:
         """
@@ -288,69 +365,91 @@ class MediaDownloader:
             
             options['progress_hooks'] = [progress_hook]
             
-            with yt_dlp.YoutubeDL(options) as ydl:
+            # Try download with primary options first, then fallback if needed
+            download_attempts = [options, self._get_fallback_options(options)]
+            
+            for attempt_num, download_options in enumerate(download_attempts, 1):
                 try:
-                    # Perform the actual download
-                    logger.info(f"Downloading to: {filepath}")
+                    download_options['outtmpl'] = filepath
+                    download_options['progress_hooks'] = [progress_hook]
                     
-                    # Use thread pool executor with optimized settings for faster execution
-                    import concurrent.futures
-                    with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
-                        loop = asyncio.get_event_loop()
-                        await loop.run_in_executor(
-                            executor, 
-                            lambda: ydl.download([url])
-                        )
+                    logger.info(f"Download attempt {attempt_num}: {filepath}")
                     
-                    # Check if file was created successfully
-                    if os.path.exists(filepath):
-                        file_size = os.path.getsize(filepath)
-                        logger.info(f"Download completed: {filename} ({file_size} bytes)")
-                        
-                        return {
-                            "success": True,
-                            "filename": filename,
-                            "filepath": filepath,
-                            "title": title,
-                            "size": file_size
-                        }
-                    else:
-                        # Sometimes yt-dlp creates files with slightly different names
-                        # Let's check for any files created during our download
-                        possible_files = [f for f in os.listdir(AppConfig.DOWNLOADS_DIR) 
-                                        if f.startswith(title) and unique_id in f]
-                        
-                        if possible_files:
-                            actual_filename = possible_files[0]
-                            actual_filepath = os.path.join(AppConfig.DOWNLOADS_DIR, actual_filename)
-                            file_size = os.path.getsize(actual_filepath)
-                            
-                            return {
-                                "success": True,
-                                "filename": actual_filename,
-                                "filepath": actual_filepath,
-                                "title": title,
-                                "size": file_size
-                            }
-                        else:
-                            return {
-                                "success": False,
-                                "error": "Download completed but file not found"
-                            }
+                    with yt_dlp.YoutubeDL(download_options) as ydl:
+                        # Use thread pool executor with optimized settings for faster execution
+                        import concurrent.futures
+                        with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
+                            loop = asyncio.get_event_loop()
+                            await loop.run_in_executor(
+                                executor, 
+                                lambda: ydl.download([url])
+                            )
+                    
+                    # If we reach here, download was successful
+                    break
                     
                 except yt_dlp.DownloadError as e:
-                    logger.error(f"yt-dlp download error: {str(e)}")
-                    return {
-                        "success": False,
-                        "error": f"Download failed: {str(e)}"
-                    }
-                
+                    logger.warning(f"Download attempt {attempt_num} failed: {str(e)}")
+                    if attempt_num >= len(download_attempts):
+                        # All attempts failed
+                        return {
+                            "success": False,
+                            "error": f"All download attempts failed. Last error: {str(e)}"
+                        }
+                    else:
+                        logger.info(f"Trying fallback configuration...")
+                        continue
                 except Exception as e:
-                    logger.error(f"Unexpected error during download: {str(e)}")
+                    logger.error(f"Unexpected error in attempt {attempt_num}: {str(e)}")
+                    if attempt_num >= len(download_attempts):
+                        return {
+                            "success": False,
+                            "error": f"Download failed: {str(e)}"
+                        }
+                    continue
+            
+            # Check if file was created successfully
+            if os.path.exists(filepath):
+                file_size = os.path.getsize(filepath)
+                logger.info(f"Download completed: {filename} ({file_size} bytes)")
+                
+                return {
+                    "success": True,
+                    "filename": filename,
+                    "filepath": filepath,
+                    "title": title,
+                    "size": file_size
+                }
+            else:
+                # Sometimes yt-dlp creates files with slightly different names
+                # Let's check for any files created during our download
+                possible_files = [f for f in os.listdir(AppConfig.DOWNLOADS_DIR) 
+                                if f.startswith(title) and unique_id in f]
+                
+                if possible_files:
+                    actual_filename = possible_files[0]
+                    actual_filepath = os.path.join(AppConfig.DOWNLOADS_DIR, actual_filename)
+                    file_size = os.path.getsize(actual_filepath)
+                    
+                    return {
+                        "success": True,
+                        "filename": actual_filename,
+                        "filepath": actual_filepath,
+                        "title": title,
+                        "size": file_size
+                    }
+                else:
                     return {
                         "success": False,
-                        "error": f"An unexpected error occurred: {str(e)}"
+                        "error": "Download completed but file not found"
                     }
+                    
+        except Exception as e:
+            logger.error(f"Unexpected error during download: {str(e)}")
+            return {
+                "success": False,
+                "error": f"An unexpected error occurred: {str(e)}"
+            }
         
         except Exception as e:
             logger.error(f"Error in download_media: {str(e)}")
