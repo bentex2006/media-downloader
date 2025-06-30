@@ -1,7 +1,7 @@
 [project]
-name = "repl-nix-workspace"
+name = "Media-downloader"
 version = "0.1.0"
-description = "Add your description here"
+description = "downaloder all kind of media form all platform"
 requires-python = ">=3.11"
 dependencies = [
     "fastapi>=0.115.14",
