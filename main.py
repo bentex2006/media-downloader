@@ -4,7 +4,7 @@ This is the main server file that handles all API endpoints
 Created by: Ritu Raj Singh
 """
 
-from fastapi import FastAPI, HTTPException, BackgroundTasks
+from fastapi import FastAPI, HTTPException, BackgroundTasks, Request
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, HTMLResponse, StreamingResponse
 from pydantic import BaseModel
@@ -31,7 +31,7 @@ app = FastAPI(
 # Mount static files directory
 # This serves our HTML, CSS, and JavaScript files to users
 app.mount("/static", StaticFiles(directory="static"), name="static")
-app.mount("/downloads", StaticFiles(directory="downloads"), name="downloads")
+# Note: We'll handle downloads manually to auto-delete files
 
 # Initialize our media downloader
 # This is the core component that handles yt-dlp operations
@@ -204,6 +204,72 @@ async def stream_download(request: DownloadRequest):
         logger.error(f"Stream download error: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
+# Custom download endpoint with auto-delete
+@app.get("/downloads/{filename}")
+async def download_file(filename: str, background_tasks: BackgroundTasks):
+    """
+    Serve downloaded files and automatically delete them after delivery
+    This ensures no data persistence on the server
+    """
+    try:
+        filepath = os.path.join(AppConfig.DOWNLOADS_DIR, filename)
+        
+        # Check if file exists
+        if not os.path.exists(filepath):
+            raise HTTPException(status_code=404, detail="File not found")
+        
+        # Get file size for proper headers
+        file_size = os.path.getsize(filepath)
+        
+        # Determine content type based on file extension
+        content_type = "application/octet-stream"
+        if filename.lower().endswith('.mp4'):
+            content_type = "video/mp4"
+        elif filename.lower().endswith('.mp3'):
+            content_type = "audio/mpeg"
+        elif filename.lower().endswith(('.jpg', '.jpeg')):
+            content_type = "image/jpeg"
+        elif filename.lower().endswith('.png'):
+            content_type = "image/png"
+        elif filename.lower().endswith('.webp'):
+            content_type = "image/webp"
+        
+        # Schedule file deletion after response is sent
+        background_tasks.add_task(delete_file_after_download, filepath)
+        
+        logger.info(f"Serving file: {filename} ({file_size} bytes) - will auto-delete")
+        
+        # Return file with proper headers
+        return FileResponse(
+            path=filepath,
+            media_type=content_type,
+            filename=filename,
+            headers={
+                "Content-Length": str(file_size),
+                "Cache-Control": "no-cache, no-store, must-revalidate",
+                "Pragma": "no-cache",
+                "Expires": "0"
+            }
+        )
+        
+    except Exception as e:
+        logger.error(f"Error serving file {filename}: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to serve file")
+
+def delete_file_after_download(filepath: str):
+    """
+    Background task to delete file after successful download
+    This ensures no data persistence on the server
+    """
+    try:
+        if os.path.exists(filepath):
+            os.remove(filepath)
+            logger.info(f"✅ Auto-deleted file: {filepath}")
+        else:
+            logger.warning(f"File already deleted: {filepath}")
+    except Exception as e:
+        logger.error(f"Failed to delete file {filepath}: {str(e)}")
+
 # Get list of supported platforms
 @app.get("/api/platforms")
 async def get_supported_platforms():
@@ -255,16 +321,43 @@ async def cleanup_downloads():
             "message": f"Cleanup failed: {str(e)}"
         }
 
+def cleanup_old_files():
+    """
+    Clean up any old files that might have been missed
+    This runs on server startup to ensure clean state
+    """
+    try:
+        downloads_dir = "downloads"
+        if os.path.exists(downloads_dir):
+            files_cleaned = 0
+            for filename in os.listdir(downloads_dir):
+                if filename != ".gitkeep":  # Keep our directory placeholder
+                    file_path = os.path.join(downloads_dir, filename)
+                    try:
+                        os.remove(file_path)
+                        files_cleaned += 1
+                    except Exception as e:
+                        logger.error(f"Failed to clean up {file_path}: {e}")
+            
+            if files_cleaned > 0:
+                logger.info(f"🧹 Cleaned up {files_cleaned} old files on startup")
+    except Exception as e:
+        logger.error(f"Startup cleanup failed: {e}")
+
 # Run the server when this file is executed directly
 if __name__ == "__main__":
     # Create downloads directory if it doesn't exist
     # This ensures we have a place to store downloaded files
     os.makedirs("downloads", exist_ok=True)
     
+    # Clean up any old files from previous runs
+    cleanup_old_files()
+    
     print("🚀 Starting Multi-Platform Media Downloader")
     print("📱 Frontend will be available at: http://localhost:5000")
     print("🔧 API documentation at: http://localhost:5000/docs")
     print("👨‍💻 Created by: Ritu Raj Singh")
+    print("🗑️ Auto-delete: Files are automatically removed after download")
     
     # Start the server with uvicorn
     # Host 0.0.0.0 makes it accessible from outside the container
