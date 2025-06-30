@@ -37,23 +37,23 @@ class MediaDownloader:
             'extract_flat': False,  # Get full metadata
             'ignoreerrors': True,  # Continue on minor errors
             
-            # Performance optimizations
-            'concurrent_fragment_downloads': 4,  # Download multiple fragments simultaneously
-            'retries': 3,  # Retry failed downloads
-            'fragment_retries': 3,  # Retry failed fragments
-            'http_chunk_size': 10485760,  # 10MB chunks for better throughput
-            'buffersize': 1024,  # Buffer size for network operations
-            
-            # Network optimizations
-            'socket_timeout': 30,  # Faster timeout for stuck connections
+            # Disable problematic features that cause fragmented downloads
+            'no_part': True,  # Don't use .part files
+            'retries': 5,  # Reasonable retry count
+            'fragment_retries': 5,  # Fragment retry count
+            'socket_timeout': 60,  # Longer timeout for stability
             'geo_bypass': True,  # Bypass geographic restrictions
-            'prefer_insecure': False,  # Use HTTPS when available
             
-            # Quality optimizations for speed
-            'writesubtitles': False,  # Skip subtitles for faster download
+            # Avoid HLS/DASH fragmented streams that cause range errors
+            'format_sort': ['proto:http', 'proto:https'],
+            
+            # Quality optimizations
+            'writesubtitles': False,  # Skip subtitles
             'writeautomaticsub': False,  # Skip auto-generated subs
             'writethumbnail': False,  # Skip thumbnail download
             'writeinfojson': False,  # Skip metadata file
+            'embed_chapters': False,  # Skip chapters
+            'embed_subs': False,  # Skip embedded subtitles
         }
     
     def _sanitize_filename(self, filename: str) -> str:
@@ -99,18 +99,18 @@ class MediaDownloader:
         format_type = format_type.upper()
         
         if format_type == "MP4":
-            # Optimized video format selectors for speed
+            # Avoid fragmented streams completely
             if quality == "best":
-                # Prefer native MP4 formats to avoid re-encoding
-                return "best[ext=mp4][protocol!=m3u8]/bestvideo[ext=mp4]+bestaudio[ext=m4a]/best"
+                # Prefer single-file progressive downloads
+                return "best[protocol^=http][ext=mp4]/best[protocol^=https][ext=mp4]/best[ext=mp4]/best"
             elif quality == "worst":
-                return "worst[ext=mp4]/worst"
+                return "worst[protocol^=http][ext=mp4]/worst[ext=mp4]/worst"
             elif quality.endswith("p"):
-                # Specific resolution like 720p, 480p - prefer native formats
+                # Specific resolution - avoid fragmented streams
                 height = quality[:-1]
-                return f"best[height<={height}][ext=mp4][protocol!=m3u8]/best[height<={height}]"
+                return f"best[height<={height}][protocol^=http][ext=mp4]/best[height<={height}][ext=mp4]/best[height<={height}]"
             else:
-                return "best[ext=mp4][protocol!=m3u8]/best"
+                return "best[protocol^=http][ext=mp4]/best[ext=mp4]/best"
                 
         elif format_type == "MP3":
             # Audio format selectors
@@ -125,8 +125,13 @@ class MediaDownloader:
                 return "bestaudio/best"
                 
         elif format_type == "IMAGE":
-            # Image format selectors (for thumbnails or image posts)
-            return "best"
+            # Image format selectors - prefer high quality images
+            if quality == "best":
+                return "best[ext=jpg]/best[ext=png]/best[ext=webp]/best"
+            elif quality == "original":
+                return "best"
+            else:
+                return "best[ext=jpg]/best[ext=png]/best[ext=webp]/best"
         
         # Default fallback
         return "best"
@@ -197,8 +202,25 @@ class MediaDownloader:
         try:
             logger.info(f"Starting download: {url} as {format_type} quality {quality}")
             
-            # Validate inputs
-            if not url or not url.startswith(('http://', 'https://')):
+            # Validate and expand shortened URLs (like Pinterest pin.it)
+            if not url:
+                return {
+                    "success": False,
+                    "error": "Invalid URL provided"
+                }
+            
+            # Handle Pinterest shortened URLs
+            if 'pin.it' in url:
+                import requests
+                try:
+                    # Follow redirect to get full Pinterest URL
+                    response = requests.head(url, allow_redirects=True)
+                    url = response.url
+                    logger.info(f"Expanded Pinterest URL to: {url}")
+                except Exception as e:
+                    logger.warning(f"Could not expand Pinterest URL: {e}")
+            
+            if not url.startswith(('http://', 'https://')):
                 return {
                     "success": False,
                     "error": "Invalid URL provided"
