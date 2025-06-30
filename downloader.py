@@ -180,10 +180,9 @@ class MediaDownloader:
             # Generate unique filename to avoid conflicts
             unique_id = str(uuid.uuid4())[:8]
             
-            # Create yt-dlp instance
-            with yt_dlp.YoutubeDL(options) as ydl:
+            # First, extract info to check if URL is valid
+            with yt_dlp.YoutubeDL({'quiet': True}) as ydl:
                 try:
-                    # First, extract info to check if URL is valid
                     logger.info("Extracting media information...")
                     info = ydl.extract_info(url, download=False)
                     
@@ -210,9 +209,19 @@ class MediaDownloader:
                     filename = f"{title}_{unique_id}.{ext}"
                     filepath = os.path.join(AppConfig.DOWNLOADS_DIR, filename)
                     
-                    # Update output template for this specific download
-                    options['outtmpl'] = filepath
-                    
+                except yt_dlp.DownloadError as e:
+                    logger.error(f"yt-dlp info extraction error: {str(e)}")
+                    return {
+                        "success": False,
+                        "error": f"Failed to extract info: {str(e)}"
+                    }
+            
+            # Now perform the actual download with proper options
+            # Update output template for this specific download
+            options['outtmpl'] = filepath
+            
+            with yt_dlp.YoutubeDL(options) as ydl:
+                try:
                     # Perform the actual download
                     logger.info(f"Downloading to: {filepath}")
                     
