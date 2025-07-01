@@ -1,0 +1,21 @@
+name: Deploy to CapRover
+
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+      
+    - name: Deploy to CapRover
+      uses: caprover/deploy-from-github@v1.0.1
+      with:
+        server: '${{ secrets.CAPROVER_SERVER }}'
+        app: '${{ secrets.CAPROVER_APP_NAME }}'
+        token: '${{ secrets.CAPROVER_APP_TOKEN }}'
