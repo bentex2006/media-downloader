@@ -65,13 +65,22 @@ class MediaDownloader:
             'embed_chapters': False,  # Skip chapters
             'embed_subs': False,  # Skip embedded subtitles
             
-            # Long-term stability fixes for YouTube cookies and authentication
+            # Aggressive YouTube bot detection bypass (2025 approach)
             'extractor_args': {
                 'youtube': {
-                    'player_client': ['android', 'web'],  # Use multiple clients for reliability
-                    'player_skip': ['webpage'],  # Skip webpage parsing that can break
-                    'comment_sort': ['top'],  # Optimize comment extraction
-                    'max_comments': [0],  # Disable comments to avoid API limits
+                    # Use embedded client - most reliable for bot detection bypass
+                    'player_client': ['android_embedded', 'android_creator'],
+                    'player_skip': ['webpage', 'configs', 'js', 'initial_data'],
+                    'comment_sort': ['top'],
+                    'max_comments': [0],
+                    'innertube_host': 'youtubei.googleapis.com',
+                    'innertube_key': None,  # Auto-detect
+                    'formats': 'missing_pot',  # Critical: allow missing PO token
+                    'skip': ['dash', 'hls', 'translated_subs'],
+                    # Bypass visitor data requirements
+                    'visitor_data': None,
+                    # Use mobile API endpoints
+                    'api_key': None,
                 }
             },
             
@@ -81,14 +90,16 @@ class MediaDownloader:
             'no_check_certificate': False,  # Use proper SSL verification
             'prefer_ffmpeg': True,  # Prefer ffmpeg for processing
             
-            # Anti-detection measures for long-term stability
+            # Anti-detection measures using Android client
             'http_headers': {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-                'Accept-Language': 'en-us,en;q=0.5',
-                'Accept-Encoding': 'gzip,deflate',
-                'Accept-Charset': 'ISO-8859-1,utf-8;q=0.7,*;q=0.7',
-                'Keep-Alive': '115',
+                'User-Agent': 'com.google.android.youtube/17.36.4 (Linux; U; Android 12; GB) gzip',
+                'Accept': '*/*',
+                'Accept-Language': 'en-US,en;q=0.9',
+                'Accept-Encoding': 'gzip, deflate, br',
+                'Origin': 'https://www.youtube.com',
+                'Referer': 'https://www.youtube.com/',
+                'X-YouTube-Client-Name': '1',
+                'X-YouTube-Client-Version': '2.20231214.01.00',
                 'Connection': 'keep-alive',
             },
             
@@ -144,16 +155,29 @@ class MediaDownloader:
         # Use different user agent
         fallback_options['http_headers']['User-Agent'] = self._get_next_user_agent()
         
-        # More aggressive extractor arguments for difficult cases
+        # Enhanced YouTube extraction settings to bypass bot detection
         fallback_options['extractor_args'] = {
             'youtube': {
-                'player_client': ['android', 'ios', 'web'],
-                'player_skip': ['webpage', 'configs'],
-                'skip': ['translated_subs'],
+                'player_client': ['android_creator', 'android_music', 'android_embedded', 'android'],
+                'player_skip': ['webpage', 'configs', 'js'],
+                'skip': ['translated_subs', 'dash', 'hls'],
                 'lang': ['en'],
-                'include_live_dash': [False]
+                'include_live_dash': [False],
+                'innertube_host': 'youtubei.googleapis.com',
+                'formats': 'missing_pot'  # Allow formats without PO token
             }
         }
+        
+        # Use Android app user agent to avoid bot detection
+        fallback_options['http_headers']['User-Agent'] = 'com.google.android.youtube/17.36.4 (Linux; U; Android 12; GB) gzip'
+        
+        # Add YouTube-specific headers
+        fallback_options['http_headers'].update({
+            'X-YouTube-Client-Name': '1',
+            'X-YouTube-Client-Version': '2.20231214.01.00',
+            'Origin': 'https://www.youtube.com',
+            'Referer': 'https://www.youtube.com/',
+        })
         
         # Remove format sorting that might be too restrictive
         if 'format_sort' in fallback_options:
