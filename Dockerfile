@@ -26,7 +26,8 @@ RUN pip install --no-cache-dir --upgrade pip && \
     fastapi==0.115.14 \
     uvicorn==0.35.0 \
     yt-dlp==2025.6.25 \
-    pydantic==2.11.7
+    pydantic==2.11.7 \
+    requests
 
 # Copy application source code
 # Copy in specific order to optimize Docker layer caching
