@@ -1,0 +1,93 @@
+# Docker ignore file for Multi-Platform Media Downloader
+# This prevents unnecessary files from being copied into the Docker image
+# Created by: Ritu Raj Singh
+
+# Git files and version control
+.git
+.gitignore
+*.git
+
+# Python cache and compiled files
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual environments
+venv/
+env/
+ENV/
+.venv/
+.ENV/
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Logs and temporary files
+*.log
+logs/
+tmp/
+temp/
+
+# Downloaded media files (they should be temporary anyway)
+downloads/*
+!downloads/.gitkeep
+
+# Replit specific files
+.replit
+replit.nix
+
+# Environment variables (secrets should be set in CapRover)
+.env
+.env.local
+.env.production
+
+# Documentation that doesn't need to be in container
+README.md
+LICENSE
+*.md
+
+# Development and testing files
+tests/
+test_*
+*_test.py
+
+# Coverage reports
+htmlcov/
+.coverage
+.coverage.*
+
+# Node.js files (if any)
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*

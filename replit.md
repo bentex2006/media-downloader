@@ -76,11 +76,20 @@ This is a modern web application for downloading videos, music, and images from 
 - Run with `uvicorn main:app --reload` for development
 - Static files served directly by FastAPI
 
+### CapRover Deployment
+- **Docker-based**: Optimized Dockerfile with Python 3.11-slim base
+- **Production ready**: Includes ffmpeg, health checks, and security hardening
+- **Auto-deployment**: Simple deployment script and comprehensive guide
+- **Non-root execution**: Security-focused container configuration
+- **Health monitoring**: Built-in health checks for CapRover integration
+
 ### Production Considerations
 - File size limit: 500MB maximum
 - Automatic file cleanup after download
 - Error handling for unsupported URLs
 - Security considerations for user input validation
+- HTTPS enforcement recommended for production
+- Memory requirement: 512MB RAM minimum for optimal performance
 
 ### Configuration Management
 - Environment variables for debug mode
@@ -89,8 +98,21 @@ This is a modern web application for downloading videos, music, and images from 
 
 ## Changelog
 
-- June 30, 2025. Initial setup
+- June 30, 2025: Initial setup
+- July 1, 2025: CapRover deployment support added with Docker containerization
+
+## Recent Changes
+
+### CapRover Deployment Implementation (July 1, 2025)
+- Created production-ready Dockerfile with Python 3.11-slim base
+- Added captain-definition file for CapRover integration
+- Implemented security hardening (non-root user, proper permissions)
+- Added ffmpeg support for media processing in containers
+- Created comprehensive deployment guide and automation script
+- Added health checks for production monitoring
+- Configured .dockerignore for optimized build process
 
 ## User Preferences
 
 Preferred communication style: Simple, everyday language.
+Deployment preference: CapRover for production hosting.
